@@ -17,9 +17,7 @@ var usersRouter = require('./routes/users');
 var productsRouter = require('./routes/products');
 var ordersRouter = require('./routes/orders');
 var invoicesRouter = require('./routes/invoices');
-
-
-let data = {name:"Le béguin", address:"56 rue de Clichy"};
+var payementRouter = require('./routes/payement');
 
 
 var app = express();
@@ -60,6 +58,9 @@ app.use('/users', usersRouter);
 app.use('/products', productsRouter);
 app.use('/orders', ordersRouter);
 app.use('/invoices', invoicesRouter);
+app.use('/payement', payementRouter);
+
+
 
 
 // catch 404 and forward to error handler
@@ -78,14 +79,6 @@ app.use(function(err, req, res, next) {
   res.render('error');
 });
 
-
-
-const charge = stripe.charges.create({
-  amount: 999,
-  currency: 'usd',
-  source: 'tok_visa',
-  receipt_email: 'jenny.rosen@example.com',
-});
 
 
 // CODE BELOW GENERATE A PDF FOR EACH INVOICE

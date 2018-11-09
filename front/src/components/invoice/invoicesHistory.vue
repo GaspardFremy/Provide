@@ -5,8 +5,8 @@
             <div class="pa-3">
                 <v-dialog v-model="dialogHelp" width="500">
                     <v-btn
-                    slot="activator" fab  dark color="transparent">
-                        <v-icon color="success">help</v-icon>
+                    slot="activator" outline fab small class="pa-0 ma-0" color="success">
+                        <h3>?</h3>
                     </v-btn>
                     <v-card>
                         <v-card-title
@@ -36,12 +36,50 @@
                 </v-dialog>
             </div>
             <v-spacer></v-spacer>
+
+            <v-dialog v-model="showPayement" width="500">
+                <v-card>
+                    <v-card-title primary-title>
+                      <p>Veuillez entrer vos inforations bancaires</p>
+                    </v-card-title>
+                    <v-card-text>
+                        <card class='stripe-card'
+                        :class='{ complete }'
+                        stripe='pk_test_tczn4vZ49Q6XCyZ8Gk7SXDxD'
+                        :options='stripeOptions'
+                        @change='complete = $event.complete'/>
+                        <v-btn class='pay-with-stripe ma-0 mt-3' @click='pay' :disabled='!complete'>Payer</v-btn>
+                    </v-card-text>
+                    <v-divider></v-divider>
+                    <v-card-actions>
+                        <v-spacer></v-spacer>
+                        <v-btn
+                        color="primary"
+                        flat
+                        @click="showPayement = false">
+                            annuler
+                        </v-btn>
+                    </v-card-actions>
+                </v-card>
+            </v-dialog>
         </v-layout>
 
 
         <v-layout row>
             <v-flex xs12 sm10 offset-sm1>
-                <p>Récapitulatif des achats effectués cette année par mois</p>
+
+                <transition name="fade">
+                   <div v-if="messageSuccess">
+                       <v-alert
+                       :value="true"
+                       color="success"
+                       icon="check_circle">
+                       Votre paiement a bien été éffectué.   Merci !
+                       </v-alert>
+                   </div>
+
+                </transition>
+
                 <v-tabs
                 dark
                 color="accent"
@@ -111,11 +149,7 @@
                                                                   </v-btn>
                                                               </tr>
                                                               <tr v-if='isPayed === 0'>
-                                                                  <v-btn
-                                                                  @click="payInvoice(months.indexOf(i)+1)"
-                                                                  color="success">
-                                                                      PAYER EN LIGNE
-                                                                  </v-btn>
+                                                                    <v-btn @click="payInvoice(months.indexOf(i)+1)" slot="activator" color="success"> PAYER EN LIGNE </v-btn>
                                                               </tr>
                                                               <tr v-if='isPayed === 1'>
                                                                     <p class="ml-2 mt-3">Facture payée <v-icon small dark color="success">done</v-icon></p>
@@ -162,6 +196,7 @@
 <script>
 import { mapGetters } from 'vuex'
 import { mapState } from 'vuex'
+// import { stripeKey, stripeOptions } from './stripeConfig.json'
 import { Card, createToken } from 'vue-stripe-elements-plus'
 
   export default {
@@ -173,7 +208,8 @@ import { Card, createToken } from 'vue-stripe-elements-plus'
         ...mapGetters([
             'clientMonthlyOrders',
             'invoiceStatusByMonth',
-            'isPayed'
+            'isPayed',
+            'payementStatus'
         ]),
         totalByMonth(){
             return this.clientMonthlyOrders.reduce(function(totalByMonth, item){
@@ -196,6 +232,7 @@ import { Card, createToken } from 'vue-stripe-elements-plus'
                 month : this.months.indexOf(monthAbr) + 1,
                 clientId : this.user[0].id
             }
+            this.monthBeingPayed = payload.month;
             this.$store.dispatch('loadClientMonthlyOrder', payload);
         },
 
@@ -212,7 +249,7 @@ import { Card, createToken } from 'vue-stripe-elements-plus'
                 this.isCurrentMonth = true
             }
             else {
-                console.log('ok proceed to payement');
+                this.showPayement = true;
             }
         },
 
@@ -225,7 +262,21 @@ import { Card, createToken } from 'vue-stripe-elements-plus'
                 console.log('ok here is your pdf');
             }
         },
+        pay () {
+            createToken().then(data =>{
+                data.token.card
+                this.payload = {
+                    invoiceId : this.invoiceStatusByMonth[0]['id'],
+                    invoiceAmount :  this.getTotalReduc(this.getTotalTTC(this.invoiceStatusByMonth[0]['amount'])),
+                    token : data.token,
+                    userId : this.user[0]['id'],
+                    userEmail : this.user[0]['email']
+                },
+                this.$store.dispatch('payement', this.payload)
+            })
+        }
     },
+    components: { Card },
 
     data () {
         return {
@@ -239,9 +290,37 @@ import { Card, createToken } from 'vue-stripe-elements-plus'
             isCurrentMonth: false,
             alertText: null,
             dialogHelp: null,
+            complete: false,
+            stripeOptions: {
+
+            },
+            showPayement : false,
+            invoiceAmout : null,
+            monthBeingPayed : 1,
+            messageSuccess : false
         }
     },
 
+    watch: {
+        payementStatus: function (val) {
+            if (this.payementStatus === "succeeded"){
+                this.showPayement = false
+                let payload = {
+                    month : this.monthBeingPayed,
+                    clientId : this.user[0].id
+                }
+                this.messageSuccess = true
+                let self = this
+                setTimeout(function(){
+                    self.messageSuccess = false
+                    console.log('msg succ false');
+
+                }, 4000);
+
+                this.$store.dispatch('checkInvoiceStatus', payload);
+            }
+        },
+    },
     props: ['id']
 }
 </script>
@@ -254,7 +333,10 @@ import { Card, createToken } from 'vue-stripe-elements-plus'
         width: 300px;
         border: 1px solid grey;
     }
-    .stripe-card.complete {
-        border-color: green;
+    .fade-enter-active, .fade-leave-active {
+        transition: opacity .5s;
+    }
+    .fade-enter, .fade-leave-to /* .fade-leave-active below version 2.1.8 */ {
+        opacity: 0;
     }
 </style>

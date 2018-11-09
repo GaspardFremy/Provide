@@ -35,6 +35,7 @@ export const store = new Vuex.Store({
 		clientDailyOrders: [],
 		clientMonthlyOrders : [],
 		invoiceStatusByMonth: [],
+		payementStatus: [],
 		isPayed:[],
 		invoices: [],
 		allInvoices:[],
@@ -112,7 +113,11 @@ export const store = new Vuex.Store({
 		},
 
 		SET_INVOICES(state, invoices){
-			state.invoices = invoices;
+			state.invoices = invoices
+		},
+
+		SET_PAYEMENT_STATUS(state, payementStatus){
+			state.payementStatus = payementStatus
 		},
 
 
@@ -236,8 +241,6 @@ export const store = new Vuex.Store({
 						commit('SET_CLIENTS_ORDERS', response.data)
 					})
 			}
-			console.log(payload);
-			//Get the data a first time
 
 			// If it's a call from the provider side, do only one call.
 			if(payload.destination === "adminView"){
@@ -292,6 +295,28 @@ export const store = new Vuex.Store({
 			}
 			getClientMonthlyOrder({commit, dispatch}, payload);
 		},
+
+
+		//CLIENT PAYEMENT
+		payement({commit}, payload) {
+			console.log(payload);
+			function proceedToPayement({commit}, payload) {
+				axios
+					.post( $axios + '/payement/charge', {
+						token : payload.token,
+						invoiceId : payload.invoiceId,
+	                    invoiceAmount : payload.invoiceAmount,
+						userId : payload.userId,
+	                    userEmail : payload.userEmail
+					})
+					.then((response) => {
+						console.log(response.data);
+						commit('SET_PAYEMENT_STATUS', response.data)
+					})
+			};
+			proceedToPayement({commit}, payload);
+		},
+
 
 		// CHECK INVOICES STATUS BY MONTH
 		checkInvoiceStatus({commit}, payload) {
@@ -574,6 +599,11 @@ export const store = new Vuex.Store({
 		//CHECK IF AN INVOICE IS PAYED
 		isPayed(state){
 			return state.isPayed
+		},
+
+		//PAYEMENT STATUS
+		payementStatus(state){
+			return state.payementStatus
 		},
 
 

@@ -5,9 +5,10 @@
             <div class="pa-3">
                 <v-dialog v-model="dialogHelp" width="500">
                     <v-btn
-                    slot="activator" fab  dark color="transparent">
-                        <v-icon color="success">help</v-icon>
+                    slot="activator" outline fab small class="pa-0 ma-0" color="success">
+                        <h3>?</h3>
                     </v-btn>
+                    
                     <v-card>
                         <v-card-title
                         class="headline grey lighten-2 text-xs-cente"
